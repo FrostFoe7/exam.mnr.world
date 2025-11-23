@@ -464,6 +464,88 @@ export default function TakeExamPage() {
             </AlertDescription>
           </Alert>
 
+          <div className="space-y-6 mt-8">
+            <h2 className="text-2xl font-bold text-center">বিস্তারিত ফলাফল</h2>
+            {questions.map((question, index) => {
+              const userAnswer = selectedAnswers[question.id!];
+              const correctAnswer = question.answer;
+              const isCorrect = userAnswer === correctAnswer;
+              const isSkipped = userAnswer === undefined;
+              const { htmlContent, images } = renderQuestionContent(question.question);
+
+              return (
+                <Card key={question.id} className={`mb-4 ${
+                  isCorrect 
+                    ? "bg-success/5" 
+                    : isSkipped 
+                      ? "bg-warning/5" 
+                      : "bg-destructive/5"
+                }`}>
+                  <CardHeader>
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="space-y-2">
+                        <Badge variant={isCorrect ? "default" : isSkipped ? "outline" : "destructive"} className={isCorrect ? "bg-success" : isSkipped ? "text-warning border-warning" : ""}>
+                          {isCorrect ? "সঠিক" : isSkipped ? "উত্তর করা হয়নি" : "ভুল"}
+                        </Badge>
+                        <h3 className="text-lg font-semibold">
+                          <span className="mr-2">{index + 1}.</span>
+                          <span dangerouslySetInnerHTML={{ __html: htmlContent }} />
+                        </h3>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {images.length > 0 && (
+                      <div className="p-2 bg-white rounded border">
+                        {images.map((img, i) => (
+                          <img key={i} src={img} alt="Question" className="max-w-full h-auto" />
+                        ))}
+                      </div>
+                    )}
+                    
+                    <div className="grid gap-2">
+                      {(Array.isArray(question.options) ? question.options : Object.values(question.options)).map((option, optIdx) => {
+                        const isSelected = userAnswer === optIdx;
+                        const isRightAnswer = correctAnswer === optIdx;
+                        const bengaliLetters = ["ক", "খ", "গ", "ঘ", "ঙ", "চ", "ছ", "জ"];
+                        
+                        let optionClass = "p-3 rounded-lg border flex items-center gap-3 ";
+                        if (isRightAnswer) {
+                          optionClass += "bg-success/20 border-success text-success-foreground font-medium";
+                        } else if (isSelected && !isRightAnswer) {
+                          optionClass += "bg-destructive/20 border-destructive text-destructive-foreground font-medium";
+                        } else {
+                          optionClass += "bg-background border-muted";
+                        }
+
+                        return (
+                          <div key={optIdx} className={optionClass}>
+                            <div className={`w-6 h-6 rounded-full border flex items-center justify-center text-sm ${
+                              isRightAnswer ? "border-success bg-success text-white" : 
+                              isSelected ? "border-destructive bg-destructive text-white" : "border-muted"
+                            }`}>
+                              {bengaliLetters[optIdx] || String.fromCharCode(65 + optIdx)}
+                            </div>
+                            <span dangerouslySetInnerHTML={{ __html: option }} />
+                            {isRightAnswer && <CheckCircle2 className="h-4 w-4 text-success ml-auto" />}
+                            {isSelected && !isRightAnswer && <AlertCircle className="h-4 w-4 text-destructive ml-auto" />}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {question.explanation && (
+                      <div className="mt-4 p-4 bg-muted/50 rounded-lg text-sm">
+                        <p className="font-semibold mb-1">ব্যাখ্যা:</p>
+                        <div dangerouslySetInnerHTML={{ __html: question.explanation }} />
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
           <div className="flex gap-3 pt-4">
             <Button
               onClick={() => router.back()}
@@ -767,7 +849,7 @@ export default function TakeExamPage() {
                         setCurrentPageIndex(pageForQuestion);
                         setShowReviewDialog(false);
                       }}
-                      className={`aspect-square rounded-lg font-semibold text-sm flex items-center justify-center transition-all hover:scale-105 ${
+                      className={`aspect-square rounded-lg font-semibold text-sm flex items-center justify-center transition-all ${
                         status === "attempted"
                           ? "bg-success text-success-foreground shadow-lg"
                           : status === "marked"
