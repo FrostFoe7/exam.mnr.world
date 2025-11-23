@@ -33,12 +33,14 @@ export function EditExamModal({
   const [name, setName] = useState("");
   const [duration, setDuration] = useState("");
   const [negativeMarks, setNegativeMarks] = useState("");
+  const [fileId, setFileId] = useState("");
 
   useEffect(() => {
     if (exam) {
       setName(exam.name);
       setDuration(String(exam.duration_minutes || ""));
       setNegativeMarks(String(exam.negative_marks_per_wrong || ""));
+      setFileId(exam.file_id || "");
     }
   }, [exam]);
 
@@ -54,6 +56,7 @@ export function EditExamModal({
           name,
           duration_minutes: parseInt(duration, 10),
           negative_marks_per_wrong: parseFloat(negativeMarks),
+          file_id: fileId.trim() || null,
         })
         .eq("id", exam.id)
         .select()
@@ -106,6 +109,12 @@ export function EditExamModal({
             onChange={(e) => setNegativeMarks(e.target.value)}
             placeholder="Negative Marks"
             required
+          />
+          <Input
+            type="text"
+            value={fileId}
+            onChange={(e) => setFileId(e.target.value)}
+            placeholder="Question File ID (Optional)"
           />
           <Button type="submit" disabled={isSubmitting} className="w-full">
             {isSubmitting ? (

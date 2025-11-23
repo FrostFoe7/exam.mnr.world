@@ -184,19 +184,41 @@ export default function TakeExamPage() {
     
         setExam(examData);
     
-        // Fetch questions from PHP API (all questions)
-        const result = await csvApi.fetchQuestions();
-    
+        // Fetch questions from PHP API
+        // If exam has a file_id, use it to fetch specific questions
+        // Otherwise fetch all (legacy behavior)
+        console.log("Fetching questions for exam:", examData.id, "file_id:", examData.file_id);
+
+        if (!examData.file_id) {
+          console.warn("No file_id found for exam. This exam might be using the legacy system or is not configured correctly.");
+          // Optional: You might want to show a UI warning here
+          // toast({ title: "সতর্কতা", description: "এই পরীক্ষার সাথে কোনো প্রশ্ন ফাইল যুক্ত নেই।", variant: "destructive" });
+        }
+
+        const result = await csvApi.fetchQuestions(examData.file_id);
+
         if (result.success && result.data?.questions) {
           // Convert PHP API format to internal format
           const convertedQuestions = result.data.questions.map((q: any) => {
-            const answerLetter = (q.answer || q.correct || "A").toString().toUpperCase();
-            const answerIndex = answerLetter.charCodeAt(0) - 65;
+            // Handle numeric answer (1-based) or letter answer (A-based)
+            let answerIndex = -1;
+            if (!isNaN(parseInt(q.answer))) {
+              answerIndex = parseInt(q.answer) - 1;
+            } else {
+              const answerLetter = (q.answer || q.correct || "A").toString().toUpperCase();
+              answerIndex = answerLetter.charCodeAt(0) - 65;
+            }
+
+            // Use provided options array if available, otherwise construct it
+            const options = q.options && Array.isArray(q.options) && q.options.length > 0
+              ? q.options
+              : [q.option1, q.option2, q.option3, q.option4, q.option5].filter(Boolean);
+
             return {
-              id: `q-${q.uid}`,
-              uid: q.uid,
-              question: q.question || q.questions || "",
-              options: [q.option1, q.option2, q.option3, q.option4, q.option5].filter(Boolean),
+              id: q.id, // Use UUID directly
+              uid: q.uid, // Keep for legacy if needed, but prefer id
+              question: q.question || q.question_text || "",
+              options: options,
               answer: answerIndex,
               explanation: q.explanation || "",
               type: q.type,
@@ -204,6 +226,13 @@ export default function TakeExamPage() {
             };
           });
           setQuestions(convertedQuestions);
+        } else {
+          console.error("Failed to fetch questions:", result.message);
+          toast({
+            title: "প্রশ্ন লোড করতে সমস্যা হয়েছে",
+            description: result.message || "অনুগ্রহ করে আবার চেষ্টা করুন",
+            variant: "destructive",
+          });
         }
       } finally {
         setLoading(false);

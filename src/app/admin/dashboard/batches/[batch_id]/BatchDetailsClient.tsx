@@ -77,6 +77,7 @@ export function BatchDetailsClient({
         batch_id,
         duration_minutes: parseInt(newExamDuration, 10),
         negative_marks_per_wrong: parseFloat(newExamNegativeMarks),
+        file_id: newExamQuestionsId.trim() || null,
       };
 
       const { data: createdExam, error: examError } = await supabase

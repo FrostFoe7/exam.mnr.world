@@ -31,6 +31,7 @@ export type Exam = {
   questions?: Question[];
   duration_minutes?: number;
   negative_marks_per_wrong?: number;
+  file_id?: string; // Added to link exam to a question file
 };
 
 export type Question = {

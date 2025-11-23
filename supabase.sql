@@ -47,6 +47,7 @@ create table exams (
   batch_id uuid not null references batches(id) on delete cascade,
   duration_minutes integer default 120,
   negative_marks_per_wrong numeric(4, 2) default 0.50,
+  file_id uuid, -- Added to link to external question file
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 

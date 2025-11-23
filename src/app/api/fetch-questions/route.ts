@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const CSV_API_ENTRY = (process.env.NEXT_PUBLIC_CSV_API_BASE_URL || "https://csv.mnr.world").replace(/\/$/, "") + "/api/index.php";
-const API_KEY = process.env.NEXT_PUBLIC_CSV_API_KEY;
+const API_KEY = process.env.NEXT_PUBLIC_CSV_API_KEY || "";
 if (!API_KEY) {
   throw new Error("Missing NEXT_PUBLIC_CSV_API_KEY in environment");
 }
@@ -30,16 +30,14 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const fileId = searchParams.get("file_id");
 
-    if (!fileId) {
-      // New API requires file_id; provide guidance instead of attempting legacy all-questions fetch
-      return NextResponse.json(
-        { success: false, message: "Missing file_id. First fetch files then provide ?file_id=UUID." },
-        { status: 400 }
-      );
-    }
+    console.log(`[FETCH-QUESTIONS] Request received. file_id: ${fileId || "N/A"}`);
 
-    const url = `${CSV_API_ENTRY}?route=questions&file_id=${encodeURIComponent(fileId)}&token=${encodeURIComponent(API_KEY)}`;
-    console.log("[FETCH-QUESTIONS] Fetching from:", url);
+    let url = `${CSV_API_ENTRY}?route=questions&token=${encodeURIComponent(API_KEY)}`;
+    if (fileId) {
+      url += `&file_id=${encodeURIComponent(fileId)}`;
+    }
+    
+    console.log("[FETCH-QUESTIONS] Forwarding to PHP API:", url);
 
     const response = await fetch(url, {
       method: "GET",
@@ -106,13 +104,12 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { file_id } = body;
-    if (!file_id) {
-      return NextResponse.json(
-        { success: false, message: "Missing file_id" },
-        { status: 400 }
-      );
+    
+    let url = `${CSV_API_ENTRY}?route=questions&token=${encodeURIComponent(API_KEY)}`;
+    if (file_id) {
+      url += `&file_id=${encodeURIComponent(file_id)}`;
     }
-    const url = `${CSV_API_ENTRY}?route=questions&file_id=${encodeURIComponent(file_id)}&token=${encodeURIComponent(API_KEY)}`;
+
     console.log("[FETCH-QUESTIONS-POST] Fetching from:", url);
     const response = await fetch(url, { headers: { "User-Agent": "Course-MNR-World-Backend/2.0" } });
     if (!response.ok) {
