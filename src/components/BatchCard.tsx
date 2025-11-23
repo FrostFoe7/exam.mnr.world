@@ -43,12 +43,15 @@ export function BatchCard({ batch, index }: BatchCardProps) {
 
           {/* Description */}
           <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4 line-clamp-2">
-            {batch.description || "এই ব্যাচে যোগ দিন এবং আপনার দক্ষতা প্রদর্শন করুন।"}
+            {batch.description ||
+              "এই ব্যাচে যোগ দিন এবং আপনার দক্ষতা প্রদর্শন করুন।"}
           </p>
 
           {/* Button */}
           <button
-            onClick={() => window.location.href = `/dashboard/batches/${batch.id}`}
+            onClick={() =>
+              (window.location.href = `/dashboard/batches/${batch.id}`)
+            }
             className="inline-flex items-center text-neutral-50 dark:text-neutral-950 bg-neutral-900 dark:bg-neutral-50 border border-neutral-900 dark:border-neutral-50 hover:bg-neutral-800 dark:hover:bg-neutral-100 focus:ring-4 focus:ring-neutral-300 dark:focus:ring-neutral-600 shadow-sm font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none transition-all duration-200"
           >
             ব্যাচ দেখুন

@@ -90,7 +90,10 @@ export const reducer = (state: State, action: Action): State => {
     }
 
     case actionTypes.DISMISS_TOAST: {
-      const dismissAction = action as Extract<Action, { type: "DISMISS_TOAST" }>;
+      const dismissAction = action as Extract<
+        Action,
+        { type: "DISMISS_TOAST" }
+      >;
       const { toastId } = dismissAction;
 
       // ! Side effects ! - This could be extracted into a dismissToast() action,

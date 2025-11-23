@@ -1,7 +1,16 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { LoadingSpinner, PageHeader, Card, CardContent, CardDescription, CardHeader, CardTitle, Badge } from "@/components";
+import {
+  LoadingSpinner,
+  PageHeader,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Badge,
+} from "@/components";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
@@ -82,7 +91,9 @@ export default function ProfilePage() {
         </CardHeader>
         <CardContent className="space-y-6 pt-6">
           <div>
-            <h3 className="font-semibold text-lg mb-2">ভর্তি হওয়া ব্যাচসমূহ</h3>
+            <h3 className="font-semibold text-lg mb-2">
+              ভর্তি হওয়া ব্যাচসমূহ
+            </h3>
             <div className="flex flex-wrap gap-2">
               {batchesLoading ? (
                 <Skeleton className="h-6 w-24" />
@@ -101,9 +112,7 @@ export default function ProfilePage() {
           </div>
 
           <div>
-            <h3 className="font-semibold text-lg mb-2">
-              অন্যান্য তথ্য
-            </h3>
+            <h3 className="font-semibold text-lg mb-2">অন্যান্য তথ্য</h3>
             <div className="flex items-center text-sm text-muted-foreground">
               <CalendarIcon className="mr-2 h-4 w-4" />
               <span>

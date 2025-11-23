@@ -15,7 +15,8 @@ export interface AboutContent {
 export const allData = {
   aboutContent: {
     title: "আমাদের সম্পর্কে",
-    description: "MNR পরীক্ষা - বাংলাদেশের শীর্ষস্থানীয় অনলাইন পরীক্ষার প্ল্যাটফর্ম",
+    description:
+      "MNR পরীক্ষা - বাংলাদেশের শীর্ষস্থানীয় অনলাইন পরীক্ষার প্ল্যাটফর্ম",
     sections: [
       {
         title: "আমাদের মিশন",

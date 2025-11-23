@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const CSV_API_ENTRY = (process.env.NEXT_PUBLIC_CSV_API_BASE_URL || "https://csv.mnr.world").replace(/\/$/, "") + "/api/index.php";
+const CSV_API_ENTRY =
+  (process.env.NEXT_PUBLIC_CSV_API_BASE_URL || "https://csv.mnr.world").replace(
+    /\/$/,
+    "",
+  ) + "/api/index.php";
 const API_KEY = process.env.NEXT_PUBLIC_CSV_API_KEY || "";
 if (!API_KEY) {
   throw new Error("Missing NEXT_PUBLIC_CSV_API_KEY in environment");
@@ -30,13 +34,15 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const fileId = searchParams.get("file_id");
 
-    console.log(`[FETCH-QUESTIONS] Request received. file_id: ${fileId || "N/A"}`);
+    console.log(
+      `[FETCH-QUESTIONS] Request received. file_id: ${fileId || "N/A"}`,
+    );
 
     let url = `${CSV_API_ENTRY}?route=questions&token=${encodeURIComponent(API_KEY)}`;
     if (fileId) {
       url += `&file_id=${encodeURIComponent(fileId)}`;
     }
-    
+
     console.log("[FETCH-QUESTIONS] Forwarding to PHP API:", url);
 
     const response = await fetch(url, {
@@ -51,7 +57,7 @@ export async function GET(request: NextRequest) {
       console.error("[FETCH-QUESTIONS] Non-OK:", response.status, errorBody);
       return NextResponse.json(
         { success: false, message: `API fetch failed (${response.status})` },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
@@ -59,7 +65,7 @@ export async function GET(request: NextRequest) {
     if (!Array.isArray(raw)) {
       return NextResponse.json(
         { success: false, message: "Unexpected API response shape" },
-        { status: 502 }
+        { status: 502 },
       );
     }
 
@@ -68,7 +74,9 @@ export async function GET(request: NextRequest) {
       file_id: q.file_id,
       question: q.question_text || "",
       question_text: q.question_text || "",
-      options: [q.option1, q.option2, q.option3, q.option4, q.option5].filter(o => o && o.trim() !== ""),
+      options: [q.option1, q.option2, q.option3, q.option4, q.option5].filter(
+        (o) => o && o.trim() !== "",
+      ),
       option1: q.option1,
       option2: q.option2,
       option3: q.option3,
@@ -92,9 +100,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        message: error instanceof Error ? error.message : "Internal server error",
+        message:
+          error instanceof Error ? error.message : "Internal server error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -104,29 +113,36 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { file_id } = body;
-    
+
     let url = `${CSV_API_ENTRY}?route=questions&token=${encodeURIComponent(API_KEY)}`;
     if (file_id) {
       url += `&file_id=${encodeURIComponent(file_id)}`;
     }
 
     console.log("[FETCH-QUESTIONS-POST] Fetching from:", url);
-    const response = await fetch(url, { headers: { "User-Agent": "Course-MNR-World-Backend/2.0" } });
+    const response = await fetch(url, {
+      headers: { "User-Agent": "Course-MNR-World-Backend/2.0" },
+    });
     if (!response.ok) {
       return NextResponse.json(
         { success: false, message: `Failed (${response.status})` },
-        { status: response.status }
+        { status: response.status },
       );
     }
     const raw = await response.json();
     if (!Array.isArray(raw)) {
-      return NextResponse.json({ success: false, message: "Unexpected API shape" }, { status: 502 });
+      return NextResponse.json(
+        { success: false, message: "Unexpected API shape" },
+        { status: 502 },
+      );
     }
     const transformed = raw.map((q: RawQuestion) => ({
       id: q.id,
       file_id: q.file_id,
       question: q.question_text || "",
-      options: [q.option1, q.option2, q.option3, q.option4, q.option5].filter(o => o && o.trim() !== ""),
+      options: [q.option1, q.option2, q.option3, q.option4, q.option5].filter(
+        (o) => o && o.trim() !== "",
+      ),
       correct: q.answer,
       explanation: q.explanation || "",
       type: q.type,
@@ -140,9 +156,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        message: error instanceof Error ? error.message : "Internal server error",
+        message:
+          error instanceof Error ? error.message : "Internal server error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

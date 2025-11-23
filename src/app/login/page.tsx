@@ -1,7 +1,18 @@
 "use client";
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { AlertBox, Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, Input, Label } from "@/components";
+import {
+  AlertBox,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  Input,
+  Label,
+} from "@/components";
 import { GraduationCap, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -70,7 +81,9 @@ export default function LoginPage() {
                 disabled={loading}
               />
             </div>
-            {error && <AlertBox type="error" title="লগইন ব্যর্থ" description={error} />}
+            {error && (
+              <AlertBox type="error" title="লগইন ব্যর্থ" description={error} />
+            )}
           </CardContent>
           <CardFooter className="flex-col">
             <Button
@@ -89,10 +102,7 @@ export default function LoginPage() {
             </Button>
             <p className="mt-4 text-center text-sm text-muted-foreground">
               অ্যাকাউন্ট নেই?{" "}
-              <Link
-                href="/register"
-                className="underline hover:text-primary"
-              >
+              <Link href="/register" className="underline hover:text-primary">
                 নিবন্ধন করুন
               </Link>
             </p>

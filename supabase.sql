@@ -75,3 +75,10 @@ create table student_exams (
   unattempted integer default 0,
   submitted_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
+
+-- Add indexes for better query performance
+CREATE INDEX idx_exams_batch_id ON exams(batch_id);
+CREATE INDEX idx_student_exams_student_id ON student_exams(student_id);
+CREATE INDEX idx_student_exams_exam_id ON student_exams(exam_id);
+CREATE INDEX idx_student_exams_student_exam ON student_exams(student_id, exam_id);
+CREATE INDEX idx_questions_exam_id ON questions(exam_id);

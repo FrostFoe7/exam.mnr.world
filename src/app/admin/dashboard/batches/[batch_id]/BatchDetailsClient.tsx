@@ -19,6 +19,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import type { Batch, Exam, Question, User } from "@/lib/types";
@@ -52,6 +61,8 @@ export function BatchDetailsClient({
   const [isSubmittingStudent, setIsSubmittingStudent] = useState(false);
   const [editingExam, setEditingExam] = useState<Exam | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [pendingStudent, setPendingStudent] = useState<User | null>(null);
 
   const batch_id = batch?.id;
 
@@ -65,8 +76,8 @@ export function BatchDetailsClient({
       return;
     }
     if (!batch_id) {
-        toast({ title: "ব্যাচ আইডি পাওয়া যায়নি!", variant: "destructive" });
-        return;
+      toast({ title: "ব্যাচ আইডি পাওয়া যায়নি!", variant: "destructive" });
+      return;
     }
 
     setIsSubmittingExam(true);
@@ -168,32 +179,56 @@ export function BatchDetailsClient({
       return;
     }
 
-    const updatedBatches = user.enrolled_batches
-      ? [...user.enrolled_batches, batch_id]
-      : [batch_id];
+    // Show confirmation dialog
+    setPendingStudent(user);
+    setShowConfirmation(true);
+    setIsSubmittingStudent(false);
+  };
 
-    const { data, error } = await supabase
-      .from("users")
-      .update({ enrolled_batches: updatedBatches })
-      .eq("uid", user.uid)
-      .select()
-      .single();
+  const handleConfirmAddStudent = async () => {
+    if (!pendingStudent || !batch_id) return;
 
-    if (error) {
-      console.error("Error adding student:", error);
+    setIsSubmittingStudent(true);
+    setShowConfirmation(false);
+
+    try {
+      const updatedBatches = pendingStudent.enrolled_batches
+        ? [...pendingStudent.enrolled_batches, batch_id]
+        : [batch_id];
+
+      const { data, error } = await supabase
+        .from("users")
+        .update({ enrolled_batches: updatedBatches })
+        .eq("uid", pendingStudent.uid)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error adding student:", error);
+        toast({
+          title: "ছাত্রছাত্রী যোগ করতে সমস্যা হয়েছে",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else if (data) {
+        setEnrolledStudents([...enrolledStudents, data]);
+        setNewStudentRoll("");
+        toast({
+          title: "ছাত্রছাত্রী সফলভাবে যোগ করা হয়েছে",
+          description: `${data.name} (রোল: ${data.roll}) ব্যাচে যুক্ত হয়েছেন।`,
+        });
+      }
+    } catch (err) {
+      console.error("Error:", err);
       toast({
-        title: "ছাত্রছাত্রী যোগ করতে সমস্যা হয়েছে",
-        description: error.message,
+        title: "ত্রুটি",
+        description: "একটি অপ্রত্যাশিত ত্রুটি ঘটেছে।",
         variant: "destructive",
       });
-    } else if (data) {
-      setEnrolledStudents([...enrolledStudents, data]);
-      setNewStudentRoll("");
-      toast({
-        title: "ছাত্রছাত্রী সফলভাবে যোগ করা হয়েছে",
-      });
+    } finally {
+      setPendingStudent(null);
+      setIsSubmittingStudent(false);
     }
-    setIsSubmittingStudent(false);
   };
 
   const handleDeleteStudent = async (studentId: string) => {
@@ -426,7 +461,9 @@ export function BatchDetailsClient({
               <TableBody>
                 {enrolledStudents.map((student) => (
                   <TableRow key={student.uid}>
-                    <TableCell className="font-medium">{student.roll}</TableCell>
+                    <TableCell className="font-medium">
+                      {student.roll}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="destructive"
@@ -455,6 +492,41 @@ export function BatchDetailsClient({
           );
         }}
       />
+
+      <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>ছাত্রছাত্রী যোগ করার নিশ্চয়তা</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingStudent && (
+                <div className="mt-4 space-y-2">
+                  <p>
+                    <strong>নাম:</strong> {pendingStudent.name}
+                  </p>
+                  <p>
+                    <strong>রোল:</strong> {pendingStudent.roll}
+                  </p>
+                  <p>
+                    <strong>UUID:</strong> {pendingStudent.uid}
+                  </p>
+                  <p className="text-sm mt-3">
+                    এই ছাত্রছাত্রীকে {batch?.name} ব্যাচে যোগ করতে চান?
+                  </p>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex gap-3">
+            <AlertDialogCancel>বাতিল করুন</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmAddStudent}
+              className="bg-primary hover:bg-primary/90"
+            >
+              যোগ করুন
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

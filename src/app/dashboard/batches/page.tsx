@@ -82,7 +82,7 @@ export default function StudentBatchesPage() {
           title="কোনো ব্যাচ পাওয়া যায়নি"
           description="আপনি কোনো ব্যাচে ভর্তি নন। আরও তথ্যের জন্য ড্যাশবোর্ডে ফিরুন।"
           actionLabel="ড্যাশবোর্ডে ফিরুন"
-          onAction={() => window.location.href = "/dashboard"}
+          onAction={() => (window.location.href = "/dashboard")}
         />
       )}
     </div>

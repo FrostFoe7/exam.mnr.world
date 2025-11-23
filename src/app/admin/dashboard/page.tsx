@@ -27,10 +27,7 @@ export default function AdminDashboard() {
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 animate-in fade-in duration-500">
       {cards.map((card, idx) => (
-        <div
-          key={idx}
-          style={{ animationDelay: `${idx * 150}ms` }}
-        >
+        <div key={idx} style={{ animationDelay: `${idx * 150}ms` }}>
           <StatCard
             title={card.title}
             value={card.value}

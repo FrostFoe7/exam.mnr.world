@@ -57,11 +57,7 @@ export default function AdminLoginPage() {
         <form onSubmit={handleLogin}>
           <CardContent className="space-y-4">
             {error && (
-              <AlertBox
-                type="error"
-                title="লগইন ব্যর্থ"
-                description={error}
-              />
+              <AlertBox type="error" title="লগইন ব্যর্থ" description={error} />
             )}
             <div className="space-y-2">
               <Label htmlFor="username">ব্যবহারকারীর নাম</Label>

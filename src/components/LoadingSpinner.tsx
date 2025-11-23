@@ -5,7 +5,10 @@ interface LoadingSpinnerProps {
   size?: "sm" | "md" | "lg";
 }
 
-export function LoadingSpinner({ message = "লোড হচ্ছে...", size = "md" }: LoadingSpinnerProps) {
+export function LoadingSpinner({
+  message = "লোড হচ্ছে...",
+  size = "md",
+}: LoadingSpinnerProps) {
   const sizeClasses = {
     sm: "h-6 w-6",
     md: "h-8 w-8",
@@ -14,7 +17,9 @@ export function LoadingSpinner({ message = "লোড হচ্ছে...", size 
 
   return (
     <div className="flex flex-col items-center justify-center py-8">
-      <Loader2 className={`${sizeClasses[size]} animate-spin text-primary mb-3`} />
+      <Loader2
+        className={`${sizeClasses[size]} animate-spin text-primary mb-3`}
+      />
       {message && <p className="text-muted-foreground text-sm">{message}</p>}
     </div>
   );

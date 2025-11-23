@@ -18,7 +18,7 @@ const API_BASE = "/api";
 
 async function apiCall<T = any>(
   endpoint: string,
-  options: FetchOptions = {}
+  options: FetchOptions = {},
 ): Promise<ApiResponse<T>> {
   const { method = "GET", body } = options;
 
@@ -83,7 +83,7 @@ export const csvApi = {
     }
 
     console.log(`[API-CLIENT] POST /upload-csv`, file.name);
-    // Note: This route was removed from Next.js. 
+    // Note: This route was removed from Next.js.
     // This method should now point to the PHP API directly or be removed if not used by client.
     // For now, we'll leave it but it will likely fail if the route is gone.
     // Assuming the user handles uploads via PHP app directly.

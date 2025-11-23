@@ -1,10 +1,32 @@
 "use client";
-import { useState } from "react";
-import { AlertBox, Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, Input, Label } from "@/components";
-import { GraduationCap, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  AlertBox,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  Input,
+  Label,
+} from "@/components";
+import { GraduationCap, Loader2, Copy, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
+
+function generateRoll(): string {
+  const now = new Date();
+  const year = String(now.getFullYear()).slice(-2).padStart(2, "0");
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const date = String(now.getDate()).padStart(2, "0");
+  const hour = String(now.getHours()).padStart(2, "0");
+  const minute = String(now.getMinutes()).padStart(2, "0");
+  const second = String(now.getSeconds()).padStart(2, "0");
+  return `${year}${month}${date}${hour}${minute}${second}`;
+}
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -12,7 +34,12 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    setRollNumber(generateRoll());
+  }, []);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,16 +95,38 @@ export default function RegisterPage() {
               />
             </div>
             <div className="space-y-2 animate-in fade-in slide-in-from-left duration-500 delay-400">
-              <Label htmlFor="roll-number">রোল নম্বর</Label>
-              <Input
-                id="roll-number"
-                type="text"
-                placeholder="আপনার রোল নম্বর"
-                value={rollNumber}
-                onChange={(e) => setRollNumber(e.target.value)}
-                required
-                disabled={loading}
-              />
+              <Label htmlFor="roll-number">রোল নম্বর (স্বয়ংক্রিয়)</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="roll-number"
+                  type="text"
+                  placeholder="স্বয়ংক্রিয়ভাবে উৎপাদিত"
+                  value={rollNumber}
+                  readOnly
+                  disabled={loading}
+                  className="flex-1 font-mono font-bold tracking-wider"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(rollNumber);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="px-3 py-2 rounded-lg border border-muted hover:bg-muted transition-colors disabled:opacity-50"
+                  disabled={loading}
+                  title="রোল নম্বর কপি করুন"
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4 text-success" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                ফরম্যাট: YYMMDDHHMMSS (বছর:মাস:দিন:ঘণ্টা:মিনিট:সেকেন্ড)
+              </p>
             </div>
             <div className="space-y-2 animate-in fade-in slide-in-from-left duration-500 delay-500">
               <Label htmlFor="password">পাসওয়ার্ড</Label>
@@ -92,7 +141,11 @@ export default function RegisterPage() {
               />
             </div>
             {error && (
-              <AlertBox type="error" title="নিবন্ধন ব্যর্থ" description={error} />
+              <AlertBox
+                type="error"
+                title="নিবন্ধন ব্যর্থ"
+                description={error}
+              />
             )}
           </CardContent>
           <CardFooter className="flex-col animate-in fade-in duration-500 delay-600">
@@ -112,10 +165,7 @@ export default function RegisterPage() {
             </Button>
             <p className="mt-4 text-center text-sm text-muted-foreground">
               ইতিমধ্যে একটি অ্যাকাউন্ট আছে?{" "}
-              <Link
-                href="/login"
-                className="underline hover:text-primary"
-              >
+              <Link href="/login" className="underline hover:text-primary">
                 লগইন করুন
               </Link>
             </p>

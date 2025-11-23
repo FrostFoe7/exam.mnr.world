@@ -12,7 +12,7 @@ import {
 import { ExamCard } from "@/components/ExamCard";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import type { Batch, Exam } from "@/lib/types";
+import type { Batch, Exam, StudentExam } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { PageHeader, LoadingSpinner } from "@/components";
 
@@ -24,6 +24,9 @@ export default function StudentBatchExamsPage() {
 
   const [batch, setBatch] = useState<Batch | null>(null);
   const [exams, setExams] = useState<Exam[]>([]);
+  const [examResults, setExamResults] = useState<Record<string, StudentExam>>(
+    {},
+  );
   const [loading, setLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
@@ -80,6 +83,26 @@ export default function StudentBatchExamsPage() {
         console.error("Error fetching exams:", examsResult.error);
       } else {
         setExams(examsResult.data);
+
+        // Fetch results for these exams
+        if (examsResult.data && examsResult.data.length > 0) {
+          const examIds = examsResult.data.map((e: Exam) => e.id);
+          const { data: resultsData, error: resultsError } = await supabase
+            .from("student_exams")
+            .select("*")
+            .eq("student_id", user!.uid)
+            .in("exam_id", examIds);
+
+          if (resultsError) {
+            console.error("Error fetching exam results:", resultsError);
+          } else if (resultsData) {
+            const resultsMap: Record<string, StudentExam> = {};
+            resultsData.forEach((r: StudentExam) => {
+              resultsMap[r.exam_id] = r;
+            });
+            setExamResults(resultsMap);
+          }
+        }
       }
     } catch (error) {
       console.error("Error during verification and fetch:", error);
@@ -99,9 +122,7 @@ export default function StudentBatchExamsPage() {
         <Card className="max-w-md mx-auto">
           <CardHeader>
             <CardTitle>অনুমতি নেই</CardTitle>
-            <CardDescription>
-              এই ব্যাচে আপনার অ্যাক্সেস নেই।
-            </CardDescription>
+            <CardDescription>এই ব্যাচে আপনার অ্যাক্সেস নেই।</CardDescription>
           </CardHeader>
           <CardContent>
             <Button onClick={() => router.push("/dashboard/batches")}>
@@ -122,7 +143,12 @@ export default function StudentBatchExamsPage() {
       {exams.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {exams.map((exam, idx) => (
-            <ExamCard key={exam.id} exam={exam} index={idx} />
+            <ExamCard
+              key={exam.id}
+              exam={exam}
+              index={idx}
+              result={examResults[exam.id]}
+            />
           ))}
         </div>
       ) : (

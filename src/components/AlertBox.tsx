@@ -10,12 +10,7 @@ interface AlertBoxProps {
   icon?: React.ReactNode;
 }
 
-export function AlertBox({
-  type,
-  title,
-  description,
-  icon,
-}: AlertBoxProps) {
+export function AlertBox({ type, title, description, icon }: AlertBoxProps) {
   const iconMap = {
     error: <AlertCircle className="h-4 w-4" />,
     success: <CheckCircle2 className="h-4 w-4" />,
@@ -36,7 +31,9 @@ export function AlertBox({
         <div>{icon || iconMap[type]}</div>
         <div>
           <p className="font-semibold">{title}</p>
-          {description && <p className="text-sm text-muted-foreground">{description}</p>}
+          {description && (
+            <p className="text-sm text-muted-foreground">{description}</p>
+          )}
         </div>
       </div>
     </Alert>

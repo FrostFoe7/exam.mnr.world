@@ -109,18 +109,20 @@ export default function AboutPage() {
           </div>
 
           <div className="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-3 animate-in fade-in duration-500">
-            {sections.map((section: { title: string; content: string }, index: number) => (
-              <div
-                key={index}
-                className="bg-card p-6 rounded-2xl border border-border shadow-sm hover:shadow-md hover:border-primary/50"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <h3 className="text-xl font-bold text-foreground mb-3">
-                  {section.title}
-                </h3>
-                <p className="text-muted-foreground">{section.content}</p>
-              </div>
-            ))}
+            {sections.map(
+              (section: { title: string; content: string }, index: number) => (
+                <div
+                  key={index}
+                  className="bg-card p-6 rounded-2xl border border-border shadow-sm hover:shadow-md hover:border-primary/50"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <h3 className="text-xl font-bold text-foreground mb-3">
+                    {section.title}
+                  </h3>
+                  <p className="text-muted-foreground">{section.content}</p>
+                </div>
+              ),
+            )}
           </div>
 
           <div className="mt-20 text-center">
@@ -144,14 +146,16 @@ export default function AboutPage() {
               বিশেষ ধন্যবাদ
             </h2>
             <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {specialContributors.map((contributor: Contributor, index: number) => (
-                <div
-                  key={contributor.name}
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <SpecialContributorCard contributor={contributor} />
-                </div>
-              ))}
+              {specialContributors.map(
+                (contributor: Contributor, index: number) => (
+                  <div
+                    key={contributor.name}
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
+                    <SpecialContributorCard contributor={contributor} />
+                  </div>
+                ),
+              )}
             </div>
           </div>
 

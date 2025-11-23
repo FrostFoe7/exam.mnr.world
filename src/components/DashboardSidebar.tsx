@@ -1,13 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  User,
-  ChevronLeft,
-  ChevronRight,
-  LogOut,
-  Shield,
-} from "lucide-react";
+import { User, ChevronLeft, ChevronRight, LogOut, Shield } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -48,7 +42,8 @@ export default function DashboardSidebar({
   const accentBg = "bg-primary";
   const accentText = "text-primary";
 
-  const panelTitle = panelType === "admin" ? "অ্যাডমিন প্যানেল" : "শিক্ষার্থী প্যানেল";
+  const panelTitle =
+    panelType === "admin" ? "অ্যাডমিন প্যানেল" : "শিক্ষার্থী প্যানেল";
   const panelIcon = panelType === "admin" ? Shield : User;
 
   const PanelIcon = panelIcon;
@@ -136,25 +131,25 @@ export default function DashboardSidebar({
 
       <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-card border-t border-border z-50 pb-safe">
         <div className="flex justify-around items-center h-16 px-2">
-            {items.map((item) => (
-              <Link
-                key={item.title}
-                href={item.href}
-                className="flex flex-col items-center justify-center w-full h-full text-muted-foreground hover:text-primary space-y-1"
-              >
-                <div className={item.isActive ? "text-primary" : ""}>
-                  <item.icon size={24} strokeWidth={2} />
-                </div>
-                <span className="text-[10px] font-medium">{item.title}</span>
-              </Link>
-            ))}
+          {items.map((item) => (
+            <Link
+              key={item.title}
+              href={item.href}
+              className="flex flex-col items-center justify-center w-full h-full text-muted-foreground hover:text-primary space-y-1"
+            >
+              <div className={item.isActive ? "text-primary" : ""}>
+                <item.icon size={24} strokeWidth={2} />
+              </div>
+              <span className="text-[10px] font-medium">{item.title}</span>
+            </Link>
+          ))}
           <Link
             href="/dashboard/profile"
             className="flex flex-col items-center justify-center w-full h-full text-muted-foreground hover:text-primary space-y-1"
           >
             <Avatar className="w-6 h-6">
               <AvatarFallback>
-                <User className="h-4 w-4"/>
+                <User className="h-4 w-4" />
               </AvatarFallback>
             </Avatar>
             <span className="text-[10px] font-medium">প্রোফাইল</span>

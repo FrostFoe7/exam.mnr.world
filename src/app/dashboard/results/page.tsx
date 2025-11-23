@@ -23,7 +23,15 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { BarChart3, Loader2, AlertCircle, TrendingUp, CheckCircle2, XCircle, HelpCircle } from "lucide-react";
+import {
+  BarChart3,
+  Loader2,
+  AlertCircle,
+  TrendingUp,
+  CheckCircle2,
+  XCircle,
+  HelpCircle,
+} from "lucide-react";
 import type { Exam } from "@/lib/types";
 
 interface ExamResult {
@@ -59,24 +67,35 @@ export default function ResultsPage() {
 
     try {
       // Fetch all student exam results
-      const { data: studentExams, error: resultsError } = await supabase
+      const { data: allStudentExams, error: resultsError } = await supabase
         .from("student_exams")
         .select("*")
         .eq("student_id", user?.uid)
-        .order("submitted_at", { ascending: false });
+        .order("submitted_at", { ascending: true });
 
       if (resultsError) {
         setError("ফলাফল আনতে ব্যর্থ");
         return;
       }
 
-      if (!studentExams || studentExams.length === 0) {
+      if (!allStudentExams || allStudentExams.length === 0) {
         setResults([]);
         return;
       }
 
+      // Filter to keep only the first attempt for each exam
+      const studentExams: any[] = [];
+      const seenExamIds = new Set();
+
+      for (const exam of allStudentExams) {
+        if (!seenExamIds.has(exam.exam_id)) {
+          seenExamIds.add(exam.exam_id);
+          studentExams.push(exam);
+        }
+      }
+
       // Get all unique exam_ids to fetch exam details
-      const examIds = [...new Set(studentExams.map((r: any) => r.exam_id))];
+      const examIds = studentExams.map((r: any) => r.exam_id);
 
       // Fetch exam details
       const { data: examsData, error: examsError } = await supabase
@@ -98,16 +117,18 @@ export default function ResultsPage() {
       setExams(examLookup);
 
       // Transform results
-      const transformedResults: ExamResult[] = studentExams.map((result: any) => ({
-        id: result.id,
-        exam_id: result.exam_id,
-        exam_name: examLookup[result.exam_id]?.name || "অজানা পরীক্ষা",
-        score: result.score,
-        correct_answers: result.correct_answers,
-        wrong_answers: result.wrong_answers,
-        unattempted: result.unattempted,
-        submitted_at: result.submitted_at,
-      }));
+      const transformedResults: ExamResult[] = studentExams.map(
+        (result: any) => ({
+          id: result.id,
+          exam_id: result.exam_id,
+          exam_name: examLookup[result.exam_id]?.name || "অজানা পরীক্ষা",
+          score: result.score,
+          correct_answers: result.correct_answers,
+          wrong_answers: result.wrong_answers,
+          unattempted: result.unattempted,
+          submitted_at: result.submitted_at,
+        }),
+      );
 
       setResults(transformedResults);
     } catch (err) {
@@ -143,12 +164,20 @@ export default function ResultsPage() {
     if (sortBy === "score") {
       return b.score - a.score;
     }
-    return new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime();
+    return (
+      new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime()
+    );
   });
 
   const totalAttempts = results.length;
-  const averageScore = results.length > 0 ? Math.round(results.reduce((sum, r) => sum + r.score, 0) / results.length) : 0;
-  const bestScore = results.length > 0 ? Math.max(...results.map(r => r.score)) : 0;
+  const averageScore =
+    results.length > 0
+      ? Math.round(
+          results.reduce((sum, r) => sum + r.score, 0) / results.length,
+        )
+      : 0;
+  const bestScore =
+    results.length > 0 ? Math.max(...results.map((r) => r.score)) : 0;
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString("bn-BD", {
@@ -250,7 +279,9 @@ export default function ResultsPage() {
           <CardContent className="pt-6">
             <div className="space-y-2 text-center">
               <p className="text-sm text-muted-foreground">গড় স্কোর</p>
-              <p className="text-3xl font-bold text-blue-600">{averageScore}%</p>
+              <p className="text-3xl font-bold text-blue-600">
+                {averageScore}%
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -273,7 +304,10 @@ export default function ResultsPage() {
               <CardTitle>বিস্তারিত ফলাফল</CardTitle>
               <CardDescription>সব পরীক্ষার ফলাফল</CardDescription>
             </div>
-            <Tabs value={sortBy} onValueChange={(v) => setSortBy(v as "recent" | "score")}>
+            <Tabs
+              value={sortBy}
+              onValueChange={(v) => setSortBy(v as "recent" | "score")}
+            >
               <TabsList>
                 <TabsTrigger value="recent">সাম্প্রতিক</TabsTrigger>
                 <TabsTrigger value="score">স্কোর</TabsTrigger>
@@ -287,12 +321,16 @@ export default function ResultsPage() {
               <div key={result.id} className="border rounded-lg p-4 space-y-4">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-lg">{result.exam_name}</h3>
+                    <h3 className="font-semibold text-lg">
+                      {result.exam_name}
+                    </h3>
                     <p className="text-sm text-muted-foreground">
                       {formatDate(result.submitted_at)}
                     </p>
                   </div>
-                  <Badge className={`text-base px-3 py-1 ${getScoreBadgeColor(result.score)}`}>
+                  <Badge
+                    className={`text-base px-3 py-1 ${getScoreBadgeColor(result.score)}`}
+                  >
                     {result.score.toFixed(2)}%
                   </Badge>
                 </div>
@@ -300,7 +338,9 @@ export default function ResultsPage() {
                 {/* Score Feedback */}
                 <div className="flex items-center gap-2">
                   {getScoreFeedbackIcon(result.score)}
-                  <span className="text-sm font-medium">{getScoreFeedback(result.score)}</span>
+                  <span className="text-sm font-medium">
+                    {getScoreFeedback(result.score)}
+                  </span>
                 </div>
 
                 {/* Score Bar */}
@@ -310,15 +350,21 @@ export default function ResultsPage() {
                 <div className="grid grid-cols-3 gap-4 text-sm">
                   <div>
                     <p className="text-muted-foreground">সঠিক</p>
-                    <p className="text-lg font-bold text-green-600">{result.correct_answers}</p>
+                    <p className="text-lg font-bold text-green-600">
+                      {result.correct_answers}
+                    </p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">ভুল</p>
-                    <p className="text-lg font-bold text-red-600">{result.wrong_answers}</p>
+                    <p className="text-lg font-bold text-red-600">
+                      {result.wrong_answers}
+                    </p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">চেষ্টা করেননি</p>
-                    <p className="text-lg font-bold text-gray-600">{result.unattempted}</p>
+                    <p className="text-lg font-bold text-gray-600">
+                      {result.unattempted}
+                    </p>
                   </div>
                 </div>
               </div>

@@ -1,7 +1,20 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, AlertCircle } from "lucide-react";
@@ -65,10 +78,7 @@ export default function ExamQuestionsPage() {
   if (loading) {
     return (
       <div className="container mx-auto p-2 md:p-4 space-y-6">
-        <PageHeader
-          title="প্রশ্নসমূহ লোড হচ্ছে..."
-          description=""
-        />
+        <PageHeader title="প্রশ্নসমূহ লোড হচ্ছে..." description="" />
         <Card>
           <CardContent className="py-8 flex items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -97,17 +107,19 @@ export default function ExamQuestionsPage() {
 
       <Card className="border-l-4 border-l-blue-500 bg-blue-50">
         <CardHeader>
-          <CardTitle className="text-base">প্রশ্ন ব্যবস্থাপনা PHP ব্যাকএন্ডে</CardTitle>
+          <CardTitle className="text-base">
+            প্রশ্ন ব্যবস্থাপনা PHP ব্যাকএন্ডে
+          </CardTitle>
           <CardDescription>
             সমস্ত প্রশ্ন সম্পাদনা এবং ব্যবস্থাপনা এখন PHP সার্ভারে করা হয়।
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
-          <p>
-            এই পরীক্ষায় সংযুক্ত প্রশ্নগুলি পরিবর্তন করতে, অনুগ্রহ করে:
-          </p>
+          <p>এই পরীক্ষায় সংযুক্ত প্রশ্নগুলি পরিবর্তন করতে, অনুগ্রহ করে:</p>
           <ol className="list-decimal list-inside space-y-2 text-gray-700">
-            <li>PHP ব্যাকএন্ডে যান: <strong>https://csv.mnr.world</strong></li>
+            <li>
+              PHP ব্যাকএন্ডে যান: <strong>https://csv.mnr.world</strong>
+            </li>
             <li>প্রশ্ন সেট আপডেট করুন</li>
             <li>পরিবর্তনগুলি স্বয়ংক্রিয়ভাবে এখানে প্রতিফলিত হবে</li>
           </ol>
