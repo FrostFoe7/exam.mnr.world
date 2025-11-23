@@ -54,13 +54,15 @@ function renderQuestionContent(content: string) {
     images.push(match[1]);
   }
 
-  const textContent = content
-    .replace(/<img[^>]*>/g, "")
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
+  // Remove img tags but keep other HTML tags for formatting (sup, sub, b, i, etc.)
+  // We still remove <br> because we might handle spacing via CSS, but keeping it is also fine.
+  // Let's keep <br> as newline for textContent if we were stripping, but for HTML we keep it.
+  
+  const htmlContent = content
+    .replace(/<img[^>]*>/g, "") // Remove images as they are handled separately
     .trim();
 
-  return { textContent, images };
+  return { htmlContent, images };
 }
 
 function formatTime(seconds: number): string {
@@ -145,7 +147,7 @@ export default function TakeExamPage() {
               .select("enrolled_batches")
               .eq("uid", user.uid)
               .single();
-  
+
             if (error) {
               console.error("Error checking authorization:", error);
               setIsAuthorized(false);
@@ -162,7 +164,7 @@ export default function TakeExamPage() {
           router.push("/login");
         }
       };
-  
+
       checkAuthorization();
     }, [user?.uid, exam?.batch_id, authContextLoading, router]);
   
@@ -508,13 +510,13 @@ export default function TakeExamPage() {
               <div className="flex items-center gap-6">
                 <div
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg font-mono font-bold transition-all ${
-                    timeLeft < 300
+                    (timeLeft || 0) < 300
                       ? "bg-destructive/20 text-destructive animate-pulse"
                       : "bg-primary/20 text-primary"
                   }`}
                 >
                   <Clock className="h-5 w-5" />
-                  <span>{formatTime(timeLeft)}</span>
+                  <span>{formatTime(timeLeft || 0)}</span>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -574,10 +576,16 @@ export default function TakeExamPage() {
                             </div>
                             <h3 className="text-lg font-semibold leading-relaxed">
                               {(() => {
-                                const { textContent } = renderQuestionContent(
+                                const { htmlContent } = renderQuestionContent(
                                   question.question,
                                 );
-                                return textContent;
+                                return (
+                                  <span
+                                    dangerouslySetInnerHTML={{
+                                      __html: htmlContent,
+                                    }}
+                                  />
+                                );
                               })()}
                             </h3>
                           </div>
@@ -665,7 +673,11 @@ export default function TakeExamPage() {
                                     className="hidden"
                                   />
                                   <span className="flex-1 text-base font-medium">
-                                    {option}
+                                    <span
+                                      dangerouslySetInnerHTML={{
+                                        __html: option,
+                                      }}
+                                    />
                                   </span>
                                 </label>
                               );
