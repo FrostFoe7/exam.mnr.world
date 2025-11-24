@@ -1,6 +1,6 @@
 "use client";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useEffect, ReactNode, useState } from "react";
 import {
   BarChart,
@@ -24,7 +24,10 @@ const sidebarNavItems = [
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, signOut, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+
+  const isExamPage = pathname?.startsWith("/dashboard/exams/");
 
   useEffect(() => {
     if (!loading && !user) {
@@ -57,11 +60,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         onLogout={handleLogout}
         panelType="student"
         onExpandedChange={setSidebarExpanded}
+        hideMobileNav={isExamPage}
       />
 
       {/* Main Content */}
       <div
-        className={`flex flex-1 flex-col pb-16 lg:pb-0 ${
+        className={`flex flex-1 flex-col ${
           sidebarExpanded ? "lg:ml-64" : "lg:ml-20"
         }`}
       >
@@ -82,7 +86,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
         </header>
-        <main className="flex-1 p-2 md:p-4 overflow-y-auto">{children}</main>
+        <main
+          className={`flex-1 p-2 md:p-4 overflow-y-auto ${
+            isExamPage ? "pb-0" : "pb-16 lg:pb-0"
+          }`}
+        >
+          {children}
+        </main>
       </div>
     </div>
   );

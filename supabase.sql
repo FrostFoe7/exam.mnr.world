@@ -65,7 +65,7 @@ create table questions (
 );
 
 -- Create the table for storing student exam results
-create table student_exams (
+create table if not exists student_exams (
   id uuid default extensions.uuid_generate_v4() not null primary key,
   exam_id uuid not null references exams(id) on delete cascade,
   student_id uuid not null references users(uid) on delete cascade,
@@ -75,6 +75,9 @@ create table student_exams (
   unattempted integer default 0,
   submitted_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
+
+-- Force schema cache refresh by adding/updating table comment
+COMMENT ON TABLE student_exams IS 'Student exam results with answer tracking';
 
 -- Add indexes for better query performance
 CREATE INDEX idx_exams_batch_id ON exams(batch_id);

@@ -36,7 +36,7 @@ export type Exam = {
 
 export type Question = {
   id?: string;
-  uid?: number; // Deprecated, use id
+  // uid deprecated and removed — use `id` (UUID) consistently throughout the app
   file_id?: string; // Added for new API
   exam_id?: string;
   question: string;

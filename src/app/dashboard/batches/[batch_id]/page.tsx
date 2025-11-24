@@ -74,7 +74,7 @@ export default function StudentBatchExamsPage() {
       ]);
 
       if (batchResult.error) {
-        console.error("Error fetching batch details:", batchResult.error);
+        // Batch loading failed, continue without it
       } else {
         setBatch(batchResult.data);
       }

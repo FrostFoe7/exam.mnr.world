@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
-import { csvApi } from "@/lib/csvApi";
+import { fetchQuestions } from "@/lib/fetchQuestions";
 import { Button } from "@/components/ui/button";
 import { AnimatedIconButton } from "@/components/AnimatedIconButton";
 import {
@@ -12,7 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { RadioGroup } from "@/components/ui/radio-group";
+import ExamQuestionCard from "@/components/ExamQuestionCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,16 @@ import { useToast } from "@/hooks/use-toast";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import type { Exam, Question } from "@/lib/types";
+import {
+  QUESTIONS_PER_PAGE,
+  QUESTIONS_PER_PAGE_MOBILE,
+  CRITICAL_TIME_THRESHOLD,
+  WARNING_TIME_THRESHOLD_PERCENT,
+  MIN_SCORE,
+  TIMER_CLASSES,
+  BREAKPOINTS,
+  TOUCH_TARGETS,
+} from "@/lib/examConstants";
 import {
   Loader2,
   Clock,
@@ -110,29 +120,73 @@ export default function TakeExamPage() {
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [negativeMarks, setNegativeMarks] = useState(0);
+  const [showTimeWarning, setShowTimeWarning] = useState(false);
+  const [showCriticalWarning, setShowCriticalWarning] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [showTimer, setShowTimer] = useState(true);
 
-  const QUESTIONS_PER_PAGE = 50;
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < BREAKPOINTS.tablet);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
-  const totalPages = Math.ceil(questions.length / QUESTIONS_PER_PAGE);
-  const startIndex = currentPageIndex * QUESTIONS_PER_PAGE;
-  const endIndex = startIndex + QUESTIONS_PER_PAGE;
+  const questionsPerPage = isMobile
+    ? QUESTIONS_PER_PAGE_MOBILE
+    : QUESTIONS_PER_PAGE;
+  const totalPages = Math.ceil(questions.length / questionsPerPage);
+  const startIndex = currentPageIndex * questionsPerPage;
+  const endIndex = startIndex + questionsPerPage;
   const currentPageQuestions = questions.slice(startIndex, endIndex);
 
   useEffect(() => {
-    if (!submitted && timeLeft !== null) {
+    if (!submitted && timeLeft !== null && !isSubmitting) {
       const timer = setInterval(() => {
         setTimeLeft((prev) => {
-          if (prev === null || prev <= 0) {
+          if (prev === null || prev <= 1) {
             clearInterval(timer);
             handleSubmitExam();
-            return 0;
+            return 1;
           }
+
+          const tenPercentTime = (exam?.duration_minutes || 2) * 60 * 0.1;
+          if (prev <= tenPercentTime && !showTimeWarning && prev > 60) {
+            setShowTimeWarning(true);
+            toast({
+              title: "⏱️ সময় শেষ হওয়ার সতর্কতা",
+              description: "মাত্র ১০% সময় বাকি আছে। দ্রুত উত্তর সম্পন্ন করুন।",
+              variant: "destructive",
+            });
+          }
+
+          if (prev <= 60 && !showCriticalWarning) {
+            setShowCriticalWarning(true);
+            toast({
+              title: "🚨 জরুরি: সময় শেষ হতে চলেছে",
+              description:
+                "মাত্র ১ মিনিট বাকি। পরীক্ষা স্বয়ংক্রিয়ভাবে জমা হবে।",
+              variant: "destructive",
+            });
+          }
+
           return prev - 1;
         });
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [submitted, timeLeft]);
+  }, [
+    submitted,
+    timeLeft,
+    showTimeWarning,
+    showCriticalWarning,
+    exam?.duration_minutes,
+    isSubmitting,
+    toast,
+  ]);
 
   useEffect(() => {
     if (!loading && timeLeft === null && exam?.duration_minutes) {
@@ -158,7 +212,6 @@ export default function TakeExamPage() {
             .single();
 
           if (error) {
-            console.error("Error checking authorization:", error);
             setIsAuthorized(false);
           } else {
             const isEnrolled = userData?.enrolled_batches?.includes(
@@ -198,26 +251,16 @@ export default function TakeExamPage() {
       // Fetch questions from PHP API
       // If exam has a file_id, use it to fetch specific questions
       // Otherwise fetch all (legacy behavior)
-      console.log(
-        "Fetching questions for exam:",
-        examData.id,
-        "file_id:",
-        examData.file_id,
-      );
-
       if (!examData.file_id) {
-        console.warn(
-          "No file_id found for exam. This exam might be using the legacy system or is not configured correctly.",
-        );
         // Optional: You might want to show a UI warning here
         // toast({ title: "সতর্কতা", description: "এই পরীক্ষার সাথে কোনো প্রশ্ন ফাইল যুক্ত নেই।", variant: "destructive" });
       }
 
-      const result = await csvApi.fetchQuestions(examData.file_id);
+      const fetched = await fetchQuestions(examData.file_id);
 
-      if (result.success && result.data?.questions) {
+      if (Array.isArray(fetched) && fetched.length > 0) {
         // Convert PHP API format to internal format
-        const convertedQuestions = result.data.questions.map((q: any) => {
+        const convertedQuestions = fetched.map((q: any) => {
           // Handle numeric answer (1-based) or letter answer (A-based)
           let answerIndex = -1;
           if (!isNaN(parseInt(q.answer))) {
@@ -239,7 +282,7 @@ export default function TakeExamPage() {
 
           return {
             id: q.id, // Use UUID directly
-            uid: q.uid, // Keep for legacy if needed, but prefer id
+            // legacy uid removed — prefer q.id
             question: q.question || q.question_text || "",
             options: options,
             answer: answerIndex,
@@ -250,7 +293,6 @@ export default function TakeExamPage() {
         });
         setQuestions(shuffleArray(convertedQuestions));
       } else {
-        console.error("Failed to fetch questions:", result.message);
         toast({
           title: "প্রশ্ন লোড করতে সমস্যা হয়েছে",
           description: result.message || "অনুগ্রহ করে আবার চেষ্টা করুন",
@@ -262,20 +304,23 @@ export default function TakeExamPage() {
     }
   };
 
-  const handleAnswerSelect = (questionId: string, optionIndex: number) => {
-    if (!questionId) return;
-    setSelectedAnswers({
-      ...selectedAnswers,
-      [questionId]: optionIndex,
-    });
-    setMarkedForReview((prev) => {
-      const newSet = new Set(prev);
-      newSet.delete(questionId);
-      return newSet;
-    });
-  };
+  const handleAnswerSelect = useCallback(
+    (questionId: string, optionIndex: number) => {
+      if (!questionId) return;
+      setSelectedAnswers((prev) => ({
+        ...prev,
+        [questionId]: optionIndex,
+      }));
+      setMarkedForReview((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(questionId);
+        return newSet;
+      });
+    },
+    [],
+  );
 
-  const toggleMarkForReview = (questionId: string) => {
+  const toggleMarkForReview = useCallback((questionId: string) => {
     setMarkedForReview((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(questionId)) {
@@ -285,7 +330,16 @@ export default function TakeExamPage() {
       }
       return newSet;
     });
-  };
+  }, []);
+
+  // Memoize attempted and unattempted counts
+  const { attemptedCount, unattemptedCount } = useMemo(
+    () => ({
+      attemptedCount: Object.keys(selectedAnswers).length,
+      unattemptedCount: questions.length - Object.keys(selectedAnswers).length,
+    }),
+    [selectedAnswers, questions.length],
+  );
 
   const handleSubmitExam = async () => {
     setIsSubmitting(true);
@@ -303,29 +357,42 @@ export default function TakeExamPage() {
     const negativeMarksPerWrong = exam?.negative_marks_per_wrong || 0;
     const totalNegativeMarks = wrongAnswers * negativeMarksPerWrong;
     const totalMarks = correctAnswers - totalNegativeMarks;
-    const finalScore = (totalMarks / questions.length) * 100;
+    const finalScore = Math.max(
+      MIN_SCORE,
+      (totalMarks / questions.length) * 100,
+    );
 
     setNegativeMarks(totalNegativeMarks);
     setScore(finalScore);
 
-    if (user) {
-      const { error } = await supabase.from("student_exams").insert([
-        {
-          exam_id,
+    if (user && exam_id) {
+      try {
+        const { error } = await supabase.from("student_exams").insert({
+          exam_id: exam_id.toString(),
           student_id: user.uid,
-          score: Math.max(0, finalScore),
+          score: Math.max(MIN_SCORE, finalScore),
           correct_answers: correctAnswers,
           wrong_answers: wrongAnswers,
           unattempted: questions.length - correctAnswers - wrongAnswers,
-        },
-      ]);
-      if (error) {
+        });
+
+        if (error) {
+          console.error("Supabase error:", error);
+          toast({
+            title: "স্কোর জমা দিতে সমস্যা হয়েছে",
+            description: error.message || "অনুগ্রহ করে আবার চেষ্টা করুন",
+            variant: "destructive",
+          });
+        } else {
+          toast({ title: "পরীক্ষা সফলভাবে জমা হয়েছে!" });
+        }
+      } catch (err) {
+        console.error("Error submitting exam:", err);
         toast({
-          title: "স্কোর জমা দিতে সমস্যা হয়েছে",
+          title: "ত্রুটি",
+          description: "পরীক্ষা জমা দিতে সমস্যা হয়েছে",
           variant: "destructive",
         });
-      } else {
-        toast({ title: "পরীক্ষা সফলভাবে জমা হয়েছে!" });
       }
     }
     setSubmitted(true);
@@ -629,7 +696,42 @@ export default function TakeExamPage() {
             })}
           </div>
 
-          <div className="flex gap-3 pt-4">
+          {/* Floating Footer - Mobile Submit Button */}
+          <div className="fixed bottom-0 left-0 right-0 md:hidden bg-background border-t p-3 flex gap-2">
+            <Button
+              onClick={() =>
+                setCurrentPageIndex(Math.max(0, currentPageIndex - 1))
+              }
+              disabled={currentPageIndex === 0}
+              variant="outline"
+              className="flex-1 h-12"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              পূর্ববর্তী
+            </Button>
+            <Button
+              onClick={() => setShowReviewDialog(true)}
+              variant="secondary"
+              className="h-12 px-4"
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={() =>
+                setCurrentPageIndex(
+                  Math.min(totalPages - 1, currentPageIndex + 1),
+                )
+              }
+              disabled={currentPageIndex === totalPages - 1}
+              className="flex-1 h-12"
+            >
+              পরবর্তী
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex gap-3 pt-4">
             <Button
               onClick={() => router.back()}
               variant="outline"
@@ -648,60 +750,100 @@ export default function TakeExamPage() {
               ড্যাশবোর্ডে যান
             </Button>
           </div>
+
+          {/* Floating Submit Button - Always Visible */}
+          <div className="fixed bottom-20 md:bottom-auto right-4 md:relative md:bottom-auto md:right-auto">
+            <Button
+              onClick={handleSubmitExam}
+              disabled={isSubmitting}
+              size="lg"
+              className="h-12 md:h-auto md:w-full gap-2 rounded-full md:rounded-lg shadow-lg md:shadow-none"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  জমা দিচ্ছি...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4" />
+                  পরীক্ষা জমা দিন
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
-
-  const attemptedCount = Object.keys(selectedAnswers).length;
-  const unattemptedCount = questions.length - attemptedCount;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-background/50">
       {timeLeft !== null && (
         <div className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="container mx-auto p-2 md:p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 flex-1">
-                <BookOpen className="h-5 w-5" />
-                <div>
-                  <h2 className="font-semibold">{exam?.name}</h2>
-                  <p className="text-xs text-muted-foreground">
-                    পৃষ্ঠা {currentPageIndex + 1} / {totalPages}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-6">
-                <div
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-mono font-bold transition-all ${
-                    (timeLeft || 0) < 300
-                      ? "bg-destructive/20 text-destructive animate-pulse"
-                      : "bg-primary/20 text-primary"
-                  }`}
+            {/* Mobile Timer Toggle */}
+            {isMobile && (
+              <div className="flex justify-between items-center mb-2 md:mb-0">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowTimer(!showTimer)}
+                  className="text-xs"
                 >
-                  <Clock className="h-5 w-5" />
-                  <span>{formatTime(timeLeft || 0)}</span>
+                  {showTimer ? "লুকান" : "দেখান"} সময়
+                </Button>
+              </div>
+            )}
+
+            {/* Timer Display */}
+            {showTimer && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4 flex-1">
+                  <BookOpen className="h-5 w-5" />
+                  <div className="hidden sm:block">
+                    <h2 className="font-semibold">{exam?.name}</h2>
+                    <p className="text-xs text-muted-foreground">
+                      পৃষ্ঠা {currentPageIndex + 1} / {totalPages}
+                    </p>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-semibold">
-                    {attemptedCount}/{questions.length}
-                  </span>
+                <div className="flex items-center gap-3 md:gap-6">
+                  <div
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg font-mono font-bold transition-all text-sm md:text-base ${
+                      (timeLeft || 0) <= CRITICAL_TIME_THRESHOLD
+                        ? TIMER_CLASSES.critical
+                        : (timeLeft || 0) <= 300
+                          ? TIMER_CLASSES.warning
+                          : TIMER_CLASSES.normal
+                    }`}
+                  >
+                    <Clock className="h-4 w-4 md:h-5 md:w-5" />
+                    <span>{formatTime(timeLeft || 1)}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-primary" />
+                    <span className="text-xs md:text-sm font-semibold">
+                      {attemptedCount}/{questions.length}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            <Progress
-              value={(attemptedCount / questions.length) * 100}
-              className="mt-3 h-1"
-            />
+            {showTimer && (
+              <Progress
+                value={(attemptedCount / questions.length) * 100}
+                className="mt-3 h-1"
+              />
+            )}
           </div>
         </div>
       )}
 
-      <div className="container mx-auto p-2 md:p-4 pb-8">
+      <div className="container mx-auto p-2 md:p-4 pb-24 md:pb-8">
         <div>
           <Tabs defaultValue="questions" className="w-full">
             <TabsList className="grid w-full grid-cols-1 mb-6">
@@ -773,105 +915,15 @@ export default function TakeExamPage() {
                     </CardHeader>
 
                     <CardContent className="space-y-4">
-                      {(() => {
-                        const { images } = renderQuestionContent(
-                          question.question,
-                        );
-                        return (
-                          images.length > 0 && (
-                            <div className="space-y-2 p-3 bg-muted/30 rounded-lg">
-                              {images.map((imgUrl, idx) => (
-                                <img
-                                  key={idx}
-                                  src={imgUrl}
-                                  alt={`Question ${globalIndex + 1}`}
-                                  className="max-w-full h-auto rounded border"
-                                  onError={(e) => {
-                                    (
-                                      e.target as HTMLImageElement
-                                    ).style.display = "none";
-                                  }}
-                                />
-                              ))}
-                            </div>
-                          )
-                        );
-                      })()}
-
-                      <RadioGroup
-                        value={
-                          question.id &&
-                          selectedAnswers[question.id!] !== undefined
-                            ? selectedAnswers[question.id!].toString()
-                            : ""
+                      <ExamQuestionCard
+                        question={question}
+                        index={pageIndex}
+                        globalIndex={globalIndex}
+                        selectedAnswer={selectedAnswers[question.id!]}
+                        onSelect={(qId, optIdx) =>
+                          handleAnswerSelect(qId, optIdx)
                         }
-                        onValueChange={(value) =>
-                          handleAnswerSelect(question.id!, parseInt(value))
-                        }
-                      >
-                        <div className="space-y-3">
-                          {(Array.isArray(question.options)
-                            ? question.options
-                            : Object.values(question.options || {})
-                          ).map((option: string, index: number) => {
-                            const bengaliLetters = [
-                              "ক",
-                              "খ",
-                              "গ",
-                              "ঘ",
-                              "ঙ",
-                              "চ",
-                              "ছ",
-                              "জ",
-                            ];
-                            const letter =
-                              bengaliLetters[index] ||
-                              String.fromCharCode(65 + index);
-
-                            return (
-                              <label
-                                key={index}
-                                className={`flex items-start space-x-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                                  selectedAnswers[question.id!] === index
-                                    ? "border-primary bg-primary/5"
-                                    : "border-muted hover:border-primary/50"
-                                }`}
-                              >
-                                <div className="flex-shrink-0 pt-0.5">
-                                  <div
-                                    className={`w-7 h-7 rounded-full border-2 flex items-center justify-center font-bold text-sm transition-all ${
-                                      selectedAnswers[question.id!] === index
-                                        ? "border-primary bg-primary text-primary-foreground"
-                                        : "border-muted-foreground/30 bg-muted/30 text-foreground"
-                                    }`}
-                                  >
-                                    {letter}
-                                  </div>
-                                </div>
-                                <input
-                                  type="radio"
-                                  value={index.toString()}
-                                  id={`q${question.id}-o${index}`}
-                                  checked={
-                                    selectedAnswers[question.id!] === index
-                                  }
-                                  onChange={() =>
-                                    handleAnswerSelect(question.id!, index)
-                                  }
-                                  className="hidden"
-                                />
-                                <span className="flex-1 text-base font-medium">
-                                  <span
-                                    dangerouslySetInnerHTML={{
-                                      __html: option,
-                                    }}
-                                  />
-                                </span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </RadioGroup>
+                      />
                     </CardContent>
                   </Card>
                 );

@@ -52,6 +52,8 @@ export default function ResultsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"recent" | "score">("recent");
+  const [page, setPage] = useState(0);
+  const RESULTS_PER_PAGE = 10;
 
   useEffect(() => {
     if (!authLoading && user?.uid) {
@@ -66,12 +68,13 @@ export default function ResultsPage() {
     setError(null);
 
     try {
-      // Fetch all student exam results
+      // Fetch paginated student exam results with limit
       const { data: allStudentExams, error: resultsError } = await supabase
         .from("student_exams")
         .select("*")
         .eq("student_id", user?.uid)
-        .order("submitted_at", { ascending: true });
+        .order("submitted_at", { ascending: true })
+        .limit(100); // Fetch up to 100 instead of all
 
       if (resultsError) {
         setError("ফলাফল আনতে ব্যর্থ");

@@ -23,7 +23,6 @@ import { useState, useEffect } from "react";
 import type { Question, Exam } from "@/lib/types";
 import { PageHeader, EmptyState } from "@/components";
 import { supabase } from "@/lib/supabase";
-import { csvApi } from "@/lib/csvApi";
 
 export default function ExamQuestionsPage() {
   const params = useParams();

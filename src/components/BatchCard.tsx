@@ -33,7 +33,7 @@ export function BatchCard({ batch, index }: BatchCardProps) {
           {/* Badge */}
           <div className="inline-flex items-center gap-1.5 bg-primary/10 dark:bg-primary/20 border border-primary/20 dark:border-primary/30 text-primary dark:text-primary text-xs font-medium px-3 py-1.5 rounded-sm mb-4">
             <Zap className="w-3 h-3" />
-            {batch.status === "live" ? "চালু" : "শেষ"}
+            {batch.status === "live" ? "লাইভ" : "শেষ"}
           </div>
 
           {/* Title */}
